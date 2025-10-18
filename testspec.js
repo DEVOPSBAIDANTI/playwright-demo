@@ -11,7 +11,7 @@ async function scrape(options = {}) {
   const { query = SEARCH_QUERY, externalBrowser = null, maxProducts = MAX_PRODUCTS } = options;
   const useSystemChrome = process.env.USE_SYSTEM_CHROME === '1';
   console.log(`Launching browser (useSystemChrome=${useSystemChrome})`);
-  const launchOptions = useSystemChrome ? { channel: 'chrome', headless: true } : { headless: false };
+  const launchOptions = useSystemChrome ? { channel: 'chrome', headless: true } : { headless: true };
   const browser = externalBrowser || await chromium.launch(launchOptions);
   const context = externalBrowser ? await browser.newContext() : await browser.newContext({
     userAgent:

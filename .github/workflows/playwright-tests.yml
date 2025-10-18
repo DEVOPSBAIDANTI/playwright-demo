@@ -32,10 +32,6 @@ jobs:
   playwright-python:
     name: Run Playwright tests (Python + pytest)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # Use Python versions available on ubuntu-latest
-        python-version: [3.10]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,7 +39,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.14.0'
           check-latest: true
 
       - name: Create venv and upgrade pip
