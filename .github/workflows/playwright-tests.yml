@@ -1,0 +1,66 @@
+name: Playwright tests (JS + Python)
+
+on:
+  push:
+    branches: [ main, master,playwright-feature ]
+  pull_request:
+    branches: [ main, master,playwright-feature ]
+
+jobs:
+  playwright-js:
+    name: Run Playwright Test (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies (npm)
+        run: |
+          npm ci || npm install
+
+      - name: Install Playwright browsers (Node)
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright Test (Node)
+        run: npx playwright test --reporter=list
+
+  playwright-python:
+    name: Run Playwright tests (Python + pytest)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.10, 3.11]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Create venv and upgrade pip
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install --upgrade pip
+
+      - name: Install Python dependencies
+        run: |
+          . .venv/bin/activate
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; else pip install playwright pytest pytest-playwright; fi
+
+      - name: Install Playwright browsers (Python)
+        run: |
+          . .venv/bin/activate
+          python -m playwright install --with-deps
+
+      - name: Run pytest (Playwright)
+        run: |
+          . .venv/bin/activate
+          pytest -q
