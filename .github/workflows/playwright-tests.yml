@@ -14,6 +14,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -29,6 +37,16 @@ jobs:
       - name: Run Playwright Test (Node)
         run: npx playwright test --reporter=list
 
+      - name: Upload Node artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-artifacts
+          path: |
+            products.json
+            report.html
+          if-no-files-found: warn
+
   playwright-python:
     name: Run Playwright tests (Python + pytest)
     runs-on: ubuntu-latest
@@ -39,19 +57,26 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.14.0'
-          check-latest: true
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Create venv and upgrade pip
         run: |
           python -m venv .venv
           . .venv/bin/activate
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
 
       - name: Install Python dependencies
         run: |
           . .venv/bin/activate
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; else pip install playwright pytest pytest-playwright; fi
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; else python -m pip install playwright pytest pytest-playwright; fi
 
       - name: Install Playwright browsers (Python)
         run: |
@@ -61,4 +86,14 @@ jobs:
       - name: Run pytest (Playwright)
         run: |
           . .venv/bin/activate
-          pytest -q
+          python -m pytest -q
+
+      - name: Upload Python artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-artifacts
+          path: |
+            products.json
+            report.html
+          if-no-files-found: warn
