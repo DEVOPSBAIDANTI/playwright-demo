@@ -35,7 +35,7 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run Playwright Test (Node)
-        run: npx playwright test --reporter=html
+        run: npx playwright test --reporter=list
 
       - name: Upload Node artifacts
         if: always()
@@ -45,7 +45,6 @@ jobs:
           path: |
             products.json
             report.html
-            playwright-report/index.html
           if-no-files-found: warn
 
   playwright-python:
@@ -58,7 +57,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.14.0"
+          python-version: '3.14.0'
 
       - name: Cache pip
         uses: actions/cache@v4
