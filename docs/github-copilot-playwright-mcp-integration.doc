@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>GitHub Copilot + Playwright MCP Server Integration in Visual Studio Code</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; line-height: 1.4; margin: 24px; }
+    h1,h2,h3 { color: #2b579a }
+    pre { background:#f4f4f4; padding:12px; border-radius:6px; overflow:auto }
+    code { background:#eee; padding:2px 6px; border-radius:4px }
+    .note { background:#fffbe6; border-left:4px solid #ffd54f; padding:10px; margin:10px 0 }
+  </style>
+</head>
+<body>
+  <h1>GitHub Copilot + Playwright MCP Server Integration in Visual Studio Code</h1>
+  <p>This guide explains how to set up GitHub Copilot and integrate a Playwright MCP (Model Context Protocol) server development workflow inside Visual Studio Code. The goal is to enable Copilot-assisted coding while running a local MCP server that exposes Playwright-aware features (test generation, test-run orchestration, code completion with context), suitable for advanced automation and test scaffolding.</p>
+
+  <h2>Overview</h2>
+  <ul>
+    <li>GitHub Copilot: AI code completion extension for VS Code.</li>
+    <li>Playwright: Browser automation library for end-to-end testing.</li>
+    <li>MCP Server: Local server that provides contextual information (project files, API, test metadata) to language models or tools integrated into the editor.</li>
+  </ul>
+
+  <h2>Prerequisites</h2>
+  <ul>
+    <li>Visual Studio Code (latest stable)</li>
+    <li>Node.js (>=18) and npm</li>
+    <li>Python 3.10+ (optional, if using Playwright Python)</li>
+    <li>Playwright (JS or Python) installed in your workspace</li>
+    <li>GitHub Copilot extension installed and signed in</li>
+  </ul>
+
+  <h2>High-level Steps</h2>
+  <ol>
+    <li>Install & configure Playwright in the project</li>
+    <li>Install GitHub Copilot extension in VS Code</li>
+    <li>Run/Configure a local MCP server that exposes project context and Playwright hooks</li>
+    <li>Configure Copilot or other editor extensions to use the MCP server context (if supported)</li>
+  </ol>
+
+  <h2>1) Install Playwright</h2>
+  <p>In a Node project:</p>
+  <pre><code>npm init -y
+npm i -D @playwright/test playwright
+npx playwright install --with-deps</code></pre>
+  <p>For Python projects:</p>
+  <pre><code>python -m pip install playwright pytest-playwright
+python -m playwright install --with-deps</code></pre>
+
+  <h2>2) Install GitHub Copilot</h2>
+  <ol>
+    <li>Open VS Code &amp; go to Extensions (Ctrl+Shift+X)</li>
+    <li>Search &amp; install "GitHub Copilot"</li>
+    <li>Sign in with your GitHub account</li>
+  </ol>
+
+  <h2>3) MCP Server (local) - purpose & minimal structure</h2>
+  <p>An MCP server provides structured project context (files, tests, config) to tools. For Playwright integration you can expose:</p>
+  <ul>
+    <li>Test files and test metadata</li>
+    <li>Playwright config and fixtures</li>
+    <li>Commands to run tests and return outputs/logs</li>
+  </ul>
+  <p>Minimal Node-based MCP server skeleton (example):</p>
+  <pre><code>const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const app = express();
+app.use(express.json());
+
+app.get('/files', (req, res)=>{
+  // list project files or return specific files
+  const files = fs.readdirSync(process.cwd()).filter(f=>f.endsWith('.spec.js')||f.endsWith('.py'))
+  res.json({files})
+});
+
+app.post('/run-test', async (req, res)=>{
+  const { testPath } = req.body;
+  // spawn Playwright test runner and stream/return output
+  // child_process.exec or spawn
+  res.json({ok:true, testPath})
+});
+
+app.listen(3003, ()=>console.log('MCP server running on http://localhost:3003'))</code></pre>
+
+  <h2>4) Connect Copilot / VS Code tools to MCP</h2>
+  <p>GitHub Copilot in general doesn't natively accept an MCP endpoint; instead the MCP server is used by editor extensions or language servers which Copilot can then use indirectly (through richer editor context). Approaches:</p>
+  <ul>
+    <li>Create a VS Code extension that enriches the workspace with virtual files (or diagnostics) using MCP data; Copilot will see the augmented workspace and use it for suggestions.</li>
+    <li>Use the existing Language Server (LSP) plugin points to surface additional context from your MCP server.</li>
+  </ul>
+
+  <h2>5) Example: VS Code Task to run MCP server</h2>
+  <pre><code>{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run MCP Server",
+      "type": "shell",
+      "command": "node ./mcp-server/index.js",
+      "problemMatcher": []
+    }
+  ]
+}
+</code></pre>
+
+  <h2>6) Example: Use MCP server to run Playwright tests</h2>
+  <pre><code>// POST /run-test { testPath: 'tests/my.spec.js' }
+// server uses child_process to run 'npx playwright test tests/my.spec.js --reporter=json'
+// server reads output and returns structured result to editor UI
+</code></pre>
+
+  <h2>7) Troubleshooting &amp; tips</h2>
+  <ul>
+    <li>If Copilot suggestions appear unrelated, ensure your workspace contains the test files and any virtual files produced by the MCP extension.</li>
+    <li>Keep MCP responses small and focused (only send relevant file slices) to avoid overwhelming the editor.</li>
+    <li>Use Playwright's reporters (JSON) for machine-readable test output.
+    </li>
+  </ul>
+
+  <h2>8) Security considerations</h2>
+  <ul>
+    <li>Do not expose the MCP server publicly — bind to localhost and restrict access.</li>
+    <li>Validate inputs to any run/test endpoints to avoid command injection.</li>
+  </ul>
+
+  <h2>9) Next steps</h2>
+  <ol>
+    <li>Create a small VS Code extension that pulls from MCP and creates virtual files (or uses the LSP) — I can scaffold this for you.</li>
+    <li>Add authentication if you intend to expose the MCP server beyond localhost.</li>
+  </ol>
+
+  <p class="note">This file is an HTML document saved with a .doc extension so Microsoft Word can open it directly. For a true .docx you can open in Word and save as .docx, or I can create a .docx using python-docx on request.</p>
+</body>
+</html>

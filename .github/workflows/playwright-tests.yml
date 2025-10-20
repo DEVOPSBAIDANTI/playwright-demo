@@ -1,0 +1,99 @@
+name: Playwright tests (JS + Python)
+
+on:
+  push:
+    branches: [ main, master,playwright-feature ]
+  pull_request:
+    branches: [ main, master,playwright-feature ]
+
+jobs:
+  playwright-js:
+    name: Run Playwright Test (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.7.0'
+
+      - name: Install dependencies (npm)
+        run: |
+          npm ci || npm install
+
+      - name: Install Playwright browsers (Node)
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright Test (Node)
+        run: npx playwright test --reporter=list
+
+      - name: Upload Node artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-artifacts
+          path: |
+            products.json
+            report.html
+          if-no-files-found: warn
+
+  playwright-python:
+    name: Run Playwright tests (Python + pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.14.0'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Create venv and upgrade pip
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+
+      - name: Install Python dependencies
+        run: |
+          . .venv/bin/activate
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt; else python -m pip install playwright pytest pytest-playwright; fi
+
+      - name: Install Playwright browsers (Python)
+        run: |
+          . .venv/bin/activate
+          python -m playwright install --with-deps
+
+      - name: Run pytest (Playwright)
+        run: |
+          . .venv/bin/activate
+          python -m pytest -q
+
+      - name: Upload Python artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-artifacts
+          path: |
+            products.json
+            report.html
+          if-no-files-found: warn
