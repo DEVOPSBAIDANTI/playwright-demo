@@ -23,7 +23,7 @@ async function scrape(options = {}) {
   const page = await context.newPage();
 
   // Navigate to Amazon India
-  console.log('Opening amazon.in');
+  console.log('Opening amazon.in website');
   await page.goto('https://www.amazon.in/', { waitUntil: 'load', timeout: 60000 });
 
   // Accept any cookie / dismiss popups if present (best-effort)
