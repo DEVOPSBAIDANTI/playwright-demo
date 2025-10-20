@@ -1,0 +1,20 @@
+config:
+  target: https://www.google.com/
+  engines:
+    playwright: {}
+  processor: "./tests/flow.js"
+scenarios:
+  - engine: playwright
+    testFunction: "googleflow"
+    phases:
+      - duration: 60
+        arrivalRate: 5
+        rampTo: 10
+        name: Warm up to the API
+      - duration: 60
+        arrivalRate: 10
+        rampTo: 50
+        name: Ramp up to peak load
+      - duration: 300
+        arrivalRate: 50
+        name: Sustained peak load
